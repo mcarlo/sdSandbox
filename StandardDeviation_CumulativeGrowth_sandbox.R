@@ -1,65 +1,80 @@
-library(shiny)
+rm(list = ls())
 
-set.seed(123)
-simZs <- matrix(rnorm(360*101), nrow = 360, ncol = 101)
-
-arithMu = .06
-arithSigma = .20
-
-logSigma2 <- function(arithSigma = arithSigma, arithMu = arithMu){
-  log(1+arithSigma^2/(1+arithMu)^2)
-}
-
-logMean <- function(arithSigma = arithSigma, arithMu = arithMu){
-  logS2 <- logSigma2(arithSigma, arithMu)
-  log((1+arithMu)^2-logS2)/2
-}
-
-### reactive starts here
-
-wealthFactors <- matrix(rep(1, 361*101), nrow = 361, ncol = 101)
-
-wealth <- matrix(rep(0, 361*101), nrow = 361, ncol = 101)
-wealth[1, ] <- rep(1, 101)
-
-wealth[1:5, 1:5]
-
-logMeanMonthly <- logMean(arithSigma, arithMu)/12
-logSigma2Monthly <- logSigma2(arithSigma, arithMu)/12
-
-for (i in 2:361){
-  for (j in 1:101){
-    wealthFactors[i, j] <- exp(logMeanMonthly + (logSigma2Monthly)^0.5 * simZs[i - 1, j])
-
+formatBucks <- function(dollars){
+  if (dollars < 1000){
+    paste0("$ ", formatC(dollars, digits = 0, format = "f"))
+  } else {
+    paste0("$ ", formatC(as.integer(dollars/1000), big.mark = ",", digits = 0,
+                         format = "d"), " K")
   }
 }
 
-wealthFactors[361, 1:10]
-hist(apply(wealthFactors, 2, sd))
-
-cumWealthFactors <- matrix(rep(1.0, 361 * 101), nrow = 361, ncol = 101)
-
-for (j in 1:101){
-  cumWealthFactors[, j] <- cumprod(wealthFactors[ ,j])
+logSigma2 <- function(sigma, mu){
+  log(1+sigma^2/(1+mu)^2)
 }
 
-years <- (0:360)/12
-
-pctiles <- apply(cumWealthFactors, 1, quantile, c(.05, .25, .5, .75, .95))
-
-pctiles2 <- which(cumWealthFactors[361, ] %in% quantile(cumWealthFactors[361, ], 
-                                                        c(.05, .25, .5, .75, .95)))
-
-
-plot(years, cumWealthFactors[, 1], log = "y", ylim = c(0.25, 64), type = "n",
-     xlab = "Years", ylab = "Cumulative Wealth")
-
-for (j in 1:101){
-  lines(years, cumWealthFactors[, j], col = 16)
+logMean <- function(sigma, mu){
+  logS2 <- logSigma2(sigma, mu)
+  log((1+mu)^2-logS2)/2
 }
 
-for (i in 1:5){
-  lines(years, t(cumWealthFactors[, pctiles2[i]]), col = "blue")
-}
+quantileColor <- cbind(c(2:6), c(2, 6, 1, 4, 3))
 
-# let the user choose the year for selecting the percentile threads
+### reactive starts here
+
+set.seed(123)
+simZs <- matrix(rnorm((360)*101), nrow = (360), ncol = 101)
+
+genPlot <- function(inputSD = 25, inputHorizon = 10, inputReturn = 6){
+  wealthFactors <- matrix(rep(1, (12 * inputHorizon + 1)*101), nrow = (12 * inputHorizon + 1), ncol = 101)
+
+  logMeanMonthly <- logMean(inputSD/100.0, inputReturn/100.0)/12
+  logSigma2Monthly <- logSigma2(inputSD/100.0, inputReturn/100.0)/12
+
+  for (i in 2:(12 * inputHorizon + 1)){
+    for (j in 1:101){
+      wealthFactors[i, j] <- exp(logMeanMonthly + (logSigma2Monthly)^0.5 * simZs[i - 1, j])
+
+    }
+  }
+
+  cumWealthFactors <- matrix(rep(1.0, (12 * inputHorizon + 1) * 101), nrow = (12 * inputHorizon + 1), ncol = 101)
+
+  for (j in 1:101){
+    cumWealthFactors[, j] <- cumprod(wealthFactors[ ,j])*10000
+  }
+
+  findQuantiles <- function(year = 30){
+    qcolumns <- which(cumWealthFactors[inputHorizon*12+1,] %in% quantile(cumWealthFactors[inputHorizon*12+1,], c(0.05, 0.33, 0.5, 0.67, 0.95)))
+    outVecs <- cumWealthFactors[,qcolumns[order(cumWealthFactors[(12 * inputHorizon + 1),qcolumns])]]
+
+    colnames(outVecs) <- c("Pct05", "Pct33", "Med", "Pct67", "Pct95")
+    outVecs
+  }
+
+  years <- (0:(12*inputHorizon))/12 #tail(years)
+  quantilePoints <- data.frame(cbind(years, findQuantiles()))
+
+  minY <- min(apply(quantilePoints[, 2:6], 2, min))
+  maxY <- max(apply(quantilePoints[, 2:6], 2, max))
+
+  suppressWarnings(plot(years, log(quantilePoints[,2]), type = "n",
+                        ylim = range(c(log(minY), log(maxY))),
+                        xlab = "Years", ylab = "Cumulative Wealth (log scale)",
+                        xlim = c(0, 40), yaxt = "n"))
+
+  for (j in 1:101){
+    lines(years, log(cumWealthFactors[,j]), lty = 3, col = 8)
+  }
+
+  for (j in 2:6){# j = 3
+    lines(years, log(quantilePoints[,j]), lty = 1, col = quantileColor[quantileColor[,1] == j, 2], lwd = 2)
+  }
+
+  text(0, log(quantilePoints$Pct95[1]), paste0("\n\n",formatBucks(quantilePoints$Pct95[1])), cex = 1.5)
+  text(34, log(quantilePoints$Pct95[(12 * inputHorizon + 1)]), paste0("95th %ile: ",formatBucks(quantilePoints$Pct95[(12 * inputHorizon + 1)])), cex = 1.5)
+  text(34, log(quantilePoints$Pct67[(12 * inputHorizon + 1)]), paste0("67th %ile: ",formatBucks(quantilePoints$Pct67[(12 * inputHorizon + 1)])), cex = 1.5)
+  text(34, log(quantilePoints$Med[(12 * inputHorizon + 1)]), paste0("50th %ile: ",formatBucks(quantilePoints$Med[(12 * inputHorizon + 1)])), cex = 1.5)
+  text(34, log(quantilePoints$Pct33[(12 * inputHorizon + 1)]), paste0("33rd %ile: ",formatBucks(quantilePoints$Pct33[(12 * inputHorizon + 1)])), cex = 1.5)
+  text(34, log(quantilePoints$Pct05[(12 * inputHorizon + 1)]), paste0("5th %ile: ",formatBucks(quantilePoints$Pct05[(12 * inputHorizon + 1)])), cex = 1.5)
+}
