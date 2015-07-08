@@ -25,7 +25,7 @@ quantileColor <- cbind(c(2:6), c(2, 6, 1, 4, 3))
 set.seed(123)
 simZs <- matrix(rnorm((360)*101), nrow = (360), ncol = 101)
 
-genPlot <- function(inputSD = 25, inputHorizon = 10, inputReturn = 6){
+genPlot <- function(inputSD = 25, inputHorizon = 30, inputReturn = 6){
   wealthFactors <- matrix(rep(1, (12 * inputHorizon + 1)*101), nrow = (12 * inputHorizon + 1), ncol = 101)
 
   logMeanMonthly <- logMean(inputSD/100.0, inputReturn/100.0)/12
@@ -61,7 +61,7 @@ genPlot <- function(inputSD = 25, inputHorizon = 10, inputReturn = 6){
   suppressWarnings(plot(years, log(quantilePoints[,2]), type = "n",
                         ylim = range(c(log(minY), log(maxY))),
                         xlab = "Years", ylab = "Cumulative Wealth (log scale)",
-                        xlim = c(0, 40), yaxt = "n"))
+                        xlim = c(0, 36), yaxt = "n"))
 
   for (j in 1:101){
     lines(years, log(cumWealthFactors[,j]), lty = 3, col = 8)
