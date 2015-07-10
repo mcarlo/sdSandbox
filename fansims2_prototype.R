@@ -6,7 +6,7 @@ rm(list = ls())
 #setupComplete = FALSE
 
 set_up <- function(weekFilename){
-  setwd("C:/Users/Anichini/Documents") # setwd("D:/WTP")
+  setwd("D:/WTP")
   weekFile <- read.csv(weekFilename, stringsAsFactors = F)
   weekFile <<- weekFile[order(-weekFile$Confidence),]
   winProb <<- weekFile[, 2]
@@ -46,20 +46,20 @@ initialize_matrices <- function(){
 
   premiumPts <<- 0 + prem * premium
 
-  oneupsetmatrix <- matrix(rep(1, games**2), nrow = games, ncol = games)
-  diag(oneupsetmatrix) <- rep(0, games)
+  oneupsetmatrix <<- matrix(rep(1, games**2), nrow = games, ncol = games)
+  diag(oneupsetmatrix) <<- rep(0, games)
 
-  oneupsetConfidence <- oneupsetmatrix
+  oneupsetConfidence <<- oneupsetmatrix
   for (j in 1:games){
     for (i in 1:games){
       if (i < j) {
-        oneupsetConfidence[i, j] <- games + premiumPts - i
+        oneupsetConfidence[i, j] <<- games + premiumPts - i
       } else {
-        oneupsetConfidence[i, j] <- games + premiumPts - i + 1
+        oneupsetConfidence[i, j] <<- games + premiumPts - i + 1
       }
     }
   }
-  diag(oneupsetConfidence) <- rep(games + premiumPts, games)
+  diag(oneupsetConfidence) <<- rep(games + premiumPts, games)
 
   set.seed(123) #as.numeric(Sys.time()))
 
@@ -97,32 +97,40 @@ initialize_matrices <- function(){
 
   totalPoints <<- simCorrect
   #max(totalPoints)
+  temp <<- rep(0, 11)
+  tempPlace <<- rep(0.0, 11)
+  tempShow <<- rep(0.0, 11)
 
+  stratWins <<- rep(0.0, 11)
+  stratPlace <<- rep(0.0, 11)
+  stratShow <<- rep(0.0, 11)
+  resultIndex <<- 1
+  fanIndex <<- sample(1:10000, 100, replace = T)
+  
   setupComplete = TRUE
 }
 
-runIterations <- function(maxIter, numFans = 100){
-
-  stratWins <<- rep(0.0, 11)
-  stratPlace <<- stratWins
-  stratShow <<- stratWins
+runIterations <- function(maxIter, numFans = 1){
 
   temp <- rep(0, 11)
-  tempPlace <- temp
-  tempShow <- temp
+  tempPlace <- rep(0, 11)
+  tempShow <- rep(0, 11)
 
+  stratWins <- rep(0, 11)
+  stratPlace <- rep(0, 11)
+  stratShow <- rep(0, 11)
+  
   # set.seed(123)
 
-  for (i in 1:maxIter){ # i = 11; numFans = 90
+  for (i in 1:maxIter){ # i = 121; numFans = 1
     set.seed(i)
 
-    resultIndex <- sample(1:10000, 1) # resultIndex = 9947
-    fanIndex <- sample(1:10000, numFans, replace = T)
-    #simOutcomes2[, resultIndex]
+    resultIndex <<- sample(1:10000, 1) # resultIndex = 9947
+    fanIndex <<- sample(1:10000, numFans, replace = T)
 
-    # max(upsetPoints[resultIndex, ])
+    # max(upsetPoints[resultIndex, ]); simOutcomes2[, resultIndex]
     # fanIndex <- which(totalPoints[resultIndex, ] < max(upsetPoints[resultIndex, ]))[1:numFans]
-    totalPointsIter <- totalPoints[resultIndex, fanIndex]
+    totalPointsIter <<- totalPoints[resultIndex, fanIndex]
 
     WTP <- 1*(myPoints[, resultIndex] >= max(totalPointsIter))
     opp1Win <- 1*(upsetPoints[resultIndex, 1] > max(totalPointsIter))
@@ -176,17 +184,14 @@ runIterations <- function(maxIter, numFans = 100){
     stratPlace <<- stratPlace + tempPlace
     stratShow <<- stratShow + tempShow
 
-    temp <- rep(0, 11)
-    tempPlace <- temp
-    tempShow <- temp
+    temp <<- rep(0, 11)
+    tempPlace <<- temp
+    tempShow <<- temp
 
   }
-  stratWins <<- stratWins
-  stratPlace <<- stratPlace
-  stratShow <<- stratShow
 }
 
-displayResults <- function(group, maxIter){
+displayResults <- function(group, maxIter){ # maxIter = 1
   resultsMatrix <- as.matrix(cbind(stratWins, stratPlace, stratShow), nrow = 6, ncol = 3) * 17.0 / maxIter
   winnings <- as.data.frame(t((resultsMatrix %*% payouts)))
   colnames(winnings) <- c("WTP", "Fav", "Fav-1", "Fav-2", "Fav-3", "Fav-4",
@@ -197,7 +202,7 @@ displayResults <- function(group, maxIter){
   print(apply(resultsMatrix, 1, sum))
 }
 
-simWeeklyPayouts <- function(weekFilename = "2014week14.csv", maxIter = 2000, group = "Ted", numFans = 90){ # weekFilename = "2014week14.csv"; maxIter = 2000; group = "Red"; numFans = 90
+simWeeklyPayouts <- function(weekFilename = "2014week14.csv", maxIter = 500, group = "Ted", numFans = 90){ # weekFilename = "2014week14.csv"; maxIter = 2000; group = "Red"; numFans = 90
 
   set_up(weekFilename)
   define_payouts(group)
@@ -206,7 +211,7 @@ simWeeklyPayouts <- function(weekFilename = "2014week14.csv", maxIter = 2000, gr
   displayResults(group, maxIter)
 }
 
-system.time(simWeeklyPayouts(weekFilename = "2014week10.csv"))
+system.time(simWeeklyPayouts(weekFilename = "2014week10.csv", numFans = 3, maxIter = 100))
 system.time(simWeeklyPayouts(weekFilename = "2014week11.csv"))
 system.time(simWeeklyPayouts(weekFilename = "2014week12.csv"))
 system.time(simWeeklyPayouts(weekFilename = "2014week14.csv"))
