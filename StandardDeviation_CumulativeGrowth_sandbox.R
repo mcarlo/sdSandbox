@@ -55,13 +55,13 @@ genPlot <- function(inputSD = 25, inputHorizon = 30, inputReturn = 6){
   years <- (0:(12*inputHorizon))/12 #tail(years)
   quantilePoints <- data.frame(cbind(years, findQuantiles()))
 
-  minY <- min(apply(quantilePoints[, 2:6], 2, min))
-  maxY <- max(apply(quantilePoints[, 2:6], 2, max))
+  minY <- min(apply(cumWealthFactors, 2, min)) #quantilePoints[, 2:6]
+  maxY <- max(apply(cumWealthFactors, 2, max)) #quantilePoints[, 2:6]
 
   suppressWarnings(plot(years, log(quantilePoints[,2]), type = "n",
                         ylim = range(c(log(minY), log(maxY))),
                         xlab = "Years", ylab = "Cumulative Wealth (log scale)",
-                        xlim = c(0, 36), yaxt = "n"))
+                        xlim = c(0, 36), yaxt = "n", main = "Cumulative Wealth over 30 Years"))
 
   for (j in 1:101){
     lines(years, log(cumWealthFactors[,j]), lty = 3, col = 8)
@@ -71,7 +71,7 @@ genPlot <- function(inputSD = 25, inputHorizon = 30, inputReturn = 6){
     lines(years, log(quantilePoints[,j]), lty = 1, col = quantileColor[quantileColor[,1] == j, 2], lwd = 2)
   }
 
-  text(0, log(quantilePoints$Pct95[1]), paste0("\n\n",formatBucks(quantilePoints$Pct95[1])), cex = 1.5)
+  text(-1, log(quantilePoints$Pct95[1]), paste0("\n\n",formatBucks(quantilePoints$Pct95[1])), cex = 1.5)
   text(34, log(quantilePoints$Pct95[(12 * inputHorizon + 1)]), paste0("95th %ile: ",formatBucks(quantilePoints$Pct95[(12 * inputHorizon + 1)])), cex = 1.5)
   text(34, log(quantilePoints$Pct67[(12 * inputHorizon + 1)]), paste0("67th %ile: ",formatBucks(quantilePoints$Pct67[(12 * inputHorizon + 1)])), cex = 1.5)
   text(34, log(quantilePoints$Med[(12 * inputHorizon + 1)]), paste0("50th %ile: ",formatBucks(quantilePoints$Med[(12 * inputHorizon + 1)])), cex = 1.5)

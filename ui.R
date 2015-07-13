@@ -4,25 +4,22 @@ library(shiny)
 shinyUI(fluidPage(
 
   #  Application title
-  titlePanel("Why your investment's standard deviation matters"),
-
-  # Sidebar with sliders that demonstrate various available
-  # options
-  sidebarLayout(
-    sidebarPanel(
-      #sliderInput("return", "Expected Return:",
-      #            min = 1, max = 8, value = 6, step= 1),
-
+  verticalLayout(
+    titlePanel("Why standard deviation matters"),
+    plotOutput("plotLines"),
+    wellPanel(
       sliderInput("sd", "Standard Deviation:",
-                  min = 5, max = 50, value = 10, step= 5)#,
+                  min = 5, max = 50, value = 10, step= 5)#
 
-      #sliderInput("years", "Time horizon in years:",
-       #           min = 10, max = 30, value = 30, step= 5)
     ),
+    wellPanel(
+      p("Standard deviation regulates how widely future results could vary. The higher the standard deviation, the greater results may vary."),
+      br(),
+      p("In addition to regulating how widely results might vary, standard deviation also has a negative effect on cumulative returns. The higher the standard deviation, the worse returns are in general, which you can see by noticing how the projected 67th, 50th, 33rd, and 5th percentile values change with higher levels of standard deviation."),
+      br(),
+      p("The chart above assumes $10,000 initial wealth and an expected return of 6%. It is not a prediction, a forecast, or investment advice. It is merely an illustration of standard deviation's effect on wealth generation.")
 
-    # Show a table summarizing the values entered
-    mainPanel(
-      plotOutput("plotLines")
+
     )
   )
 ))
